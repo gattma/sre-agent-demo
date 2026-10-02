@@ -1,0 +1,50 @@
+controller:
+  type: deployment
+  replicas: 1
+alloy:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {memory: 256Mi}
+  configMap:
+    content: |
+      discovery.kubernetes "demo" {
+        role = "pod"
+        namespaces { names = ["demo"] }
+      }
+      discovery.relabel "demo" {
+        targets = discovery.kubernetes.demo.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          regex = "demo-service"
+          action = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label = "service"
+        }
+      }
+      loki.source.kubernetes "demo" {
+        targets = discovery.relabel.demo.output
+        forward_to = [loki.write.local.receiver]
+      }
+      loki.write "local" {
+        endpoint { url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push" }
+      }
+# Custom namespaced RBAC is applied by install.sh.
+rbac:
+  create: false
+serviceAccount:
+  create: true
+  name: alloy
