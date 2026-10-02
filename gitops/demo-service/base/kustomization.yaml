@@ -3,3 +3,12 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
+secretGenerator:
+  - name: test-secret
+    options:
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+        argocd.argoproj.io/sync-wave: "1"
+    files:
+      - test.txt
