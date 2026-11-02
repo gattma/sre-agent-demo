@@ -25,14 +25,11 @@ spec:
           type: RuntimeDefault
       containers:
         - name: demo-service
-          image: demo-service:1.1.0
+          image: ghcr.io/gattma/silly-demo:2.0.0
           imagePullPolicy: Never
           ports:
             - name: http
               containerPort: 8080
-          env:
-            - name: SERVICE_VERSION
-              value: "1.1.0"
           resources:
             requests: {cpu: 50m, memory: 32Mi}
             limits: {cpu: 250m, memory: 128Mi}
