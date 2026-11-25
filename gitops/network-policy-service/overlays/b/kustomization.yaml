@@ -5,6 +5,7 @@ resources:
 - ../../base
 - namespace.yaml
 - deny-b.yaml
+- allow-a-to-b.yaml
 patches:
 - patch: |-
     apiVersion: apps/v1
