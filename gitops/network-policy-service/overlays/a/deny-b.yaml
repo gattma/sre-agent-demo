@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-demo-ingress
+  namespace: network-demo-b
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: network-policy-service
+  policyTypes: [Ingress]
+  ingress: []
