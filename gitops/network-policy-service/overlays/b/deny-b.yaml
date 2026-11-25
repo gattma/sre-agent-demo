@@ -8,4 +8,16 @@ spec:
     matchLabels:
       app.kubernetes.io/name: network-policy-service
   policyTypes: [Ingress]
-  ingress: []
+  ingress:
+    # Allow the peer service in network-demo-a to reach this service.
+    # network-demo-a depends on /hello here for its startup/readiness/liveness probes (CHECK_PEER=true).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network-demo-a
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: network-policy-service
+      ports:
+        - protocol: TCP
+          port: 8080
