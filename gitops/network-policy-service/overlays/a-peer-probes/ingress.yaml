@@ -4,7 +4,6 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
   name: network-service-a
-  namespace: holmes-mcp
 spec:
   rules:
     - host: service-a.localhost
