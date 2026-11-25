@@ -45,6 +45,9 @@ forward() {
   cat "$logfile" >&2
   fail "port-forward $service"
 }
+curl -fsS --max-time 5 --noproxy litellm.localhost --resolve litellm.localhost:80:127.0.0.1 \
+  http://litellm.localhost/health/readiness > /dev/null || fail 'LiteLLM ingress /health/readiness'
+ok 'LiteLLM ingress /health/readiness'
 forward demo demo-service 8080
 demo_port=$port
 curl --fail --silent --max-time 5 "http://127.0.0.1:$demo_port/health" > /dev/null || fail 'demo-service /health'

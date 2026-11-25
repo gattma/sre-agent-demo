@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/common.sh"
-need docker kind kubectl helm curl python3
+need docker kind kubectl helm curl python3 openssl
 need_kind
 repo_config
 bash scripts/cluster.sh

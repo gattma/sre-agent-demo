@@ -4,7 +4,6 @@ namespace: network-demo-b
 resources:
 - ../../base
 - namespace.yaml
-- deny-b.yaml
 patches:
 - patch: |-
     apiVersion: apps/v1

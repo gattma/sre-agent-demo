@@ -1,24 +1,30 @@
 # Local Kubernetes GitOps and observability demo
 
-A small, disposable infrastructure foundation for incident analysis. This iteration contains infrastructure and an HTTP service only.
+A small, disposable infrastructure foundation for incident analysis, with an HTTP demo service and a local LiteLLM gateway.
+
+An independent [NetworkPolicy demo service](demo-apps/network-policy-service/README.md) provides cross-namespace HTTP calls, allow/deny policy examples, and optional peer-dependent startup, readiness, and liveness probes. It is deployed separately from the existing GitOps demo.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
     GitHub[Public GitHub repository] -->|Git revision and desired state| Argo
-    subgraph kind[Local kind cluster: ai-ops-poc]
+    subgraph kind[Local kind cluster: ai-ops-poc-v2]
         Argo[Argo CD / argocd namespace] -->|Reconcile| Demo[demo-service / demo namespace]
         subgraph monitoring[monitoring namespace]
             Prometheus -->|Scrape /metrics every 15s| Demo
             Alloy -->|Read pod logs via Kubernetes API| Demo
             Alloy -->|Push JSON logs| Loki
         end
+        subgraph litellm[litellm namespace]
+            LiteLLM --> PostgreSQL
+            LiteLLM --> Redis
+        end
     end
     Docker[Local Docker build] -->|kind load docker-image| Demo
 ```
 
-One control-plane node; no ingress, operators, Grafana UI, or external storage. Prometheus and Loki use ephemeral disk: pod recreation can lose their history. Recreating the cluster removes all state.
+The cluster uses one control-plane node with ingress-nginx for LiteLLM. Prometheus and Loki use ephemeral disk: pod recreation can lose their history. Recreating the cluster removes all state.
 
 ## Prerequisites
 
@@ -27,7 +33,7 @@ Install these yourself on macOS or Linux:
 - Docker Desktop or Docker Engine, running, with approximately 4 CPUs and 6 GB RAM available (8 GB recommended).
 - kind **0.27.0 or newer** for the selected Kubernetes node image.
 - kubectl compatible with Kubernetes 1.32 (1.31–1.33), Helm 3.17+, GNU/BSD make.
-- Bash 3.2+, Python 3.9+, curl, Git, and ordinary Unix tools.
+- Bash 3.2+, Python 3.9+, curl, Git, OpenSSL, and ordinary Unix tools.
 - Internet access to GitHub, chart repositories, PyPI, and container registries during installation. No registry push or cloud account is needed.
 
 ## Quick start
@@ -42,7 +48,7 @@ export GIT_REPO_URL=https://github.com/<user>/<repo>.git
 make up
 ```
 
-`make up` checks the repository configuration, creates/reuses the cluster, builds and loads the image, installs infrastructure, creates the Argo CD Application, waits up to ten minutes for `Synced/Healthy`, then verifies observability. Re-running it is safe in normal use. Everything targets `kind-ai-ops-poc` explicitly, regardless of your current kubectl context.
+`make up` checks the repository configuration, creates or reuses the cluster, builds and loads the image, installs infrastructure including LiteLLM, creates the Argo CD Application, waits up to ten minutes for `Synced/Healthy`, then checks observability and LiteLLM readiness. Re-running it is safe in normal use. The LiteLLM installer explicitly targets `kind-ai-ops-poc-v2`.
 
 For individual steps:
 
@@ -74,6 +80,19 @@ Pins are in `versions.env`; the app's base image and dependency are pinned in it
 kind runs the local Kubernetes API and workloads. Argo CD watches the public repository and reconciles the demo. Prometheus is a single server with a six-hour retention window and only one scrape job. Loki is a single binary using filesystem storage with 24-hour retention. Alloy is Grafana's supported log collector and reads only pods in `demo`, using a namespaced Role; it needs no host log mounts or privileged container. The Python service runs as a non-root user with a read-only filesystem and no service-account token.
 
 Argo CD and Helm generate operational Secrets (including the initial Argo admin password). No credentials are committed and the demo application needs no Secrets. The Kubernetes control-plane node uses kind's required Docker privileges; application containers are not privileged.
+
+## LiteLLM
+
+`make install` deploys the LiteLLM proxy, standalone Redis (1 GiB), and PostgreSQL (2 GiB) in the `litellm` namespace. To run just this step on the existing cluster, use `bash scripts/litellm.sh`. The installer generates the database and Redis passwords, proxy master key, and encryption salt on first use and keeps the Secrets on subsequent runs.
+
+Open the dashboard at `http://litellm.localhost/ui`. The API is available at `http://litellm.localhost` through the nginx ingress installed by `make cluster`.
+
+Use the master key to sign in and configure a model provider. The initial model list is empty.
+
+```bash
+kubectl --context kind-ai-ops-poc-v2 -n litellm get secret litellm-master-key-secret \
+  -o jsonpath='{.data.master-key}' | openssl base64 -d -A
+```
 
 ## GitOps flow
 
@@ -126,7 +145,7 @@ curl -fsS -G http://localhost:3100/loki/api/v1/query_range \
 
 The verification script checks actual successful scrapes, emitted request counters, and queryable `/health` logs. It uses temporary localhost port-forwards and cleans them up.
 
-The existing Git revision, Deployment/ReplicaSet metadata, labels, versioned logs, and request metrics support future correlation. A later iteration can add `BACKEND_URL` behavior to the service and an environment variable to the Deployment: changing it in Git will create a ReplicaSet and can produce HTTP 500 metrics and ERROR logs. No backend dependency, incident switch, incident automation, or AI functionality exists in this iteration.
+The existing Git revision, Deployment/ReplicaSet metadata, labels, versioned logs, and request metrics support future correlation. A later iteration can add `BACKEND_URL` behavior to the service and an environment variable to the Deployment: changing it in Git will create a ReplicaSet and can produce HTTP 500 metrics and ERROR logs.
 
 ## Useful commands and access
 

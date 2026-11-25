@@ -1,0 +1,47 @@
+masterkeySecretName: litellm-master-key-secret
+masterkeySecretKey: master-key
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: litellm.localhost
+      paths:
+        - path: /
+          pathType: Prefix
+
+environmentSecrets:
+  - litellm-env
+
+db:
+  deployStandalone: false
+  useExisting: true
+  endpoint: my-postgres-postgresql
+  database: litellm
+  secret:
+    name: litellm-writer-secret
+
+redis:
+  enabled: false
+
+envVars:
+  REDIS_HOST: my-redis-master
+  REDIS_PORT: "6379"
+extraEnvVars:
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: litellm-redis
+        key: password
+
+migrationJob:
+  hooks:
+    argocd:
+      enabled: false
+    helm:
+      enabled: true
+
+proxy_config:
+  general_settings:
+    store_model_in_db: true
+

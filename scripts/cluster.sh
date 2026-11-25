@@ -9,3 +9,5 @@ else
   kind create cluster --name "$CLUSTER_NAME" --config kind/cluster.yaml --image "$KIND_NODE_IMAGE" --wait 180s
 fi
 k wait --for=condition=Ready nodes --all --timeout=180s
+k apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+k -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s

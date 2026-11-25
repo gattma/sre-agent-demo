@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: network-service-a
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/gattma/sre-agent-demo.git
+    targetRevision: main
+    path: gitops/network-policy-service/overlays/a-peer-probes
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: network-demo-a
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m

@@ -3,9 +3,16 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT"
 source "$ROOT/versions.env"
-CLUSTER_NAME=ai-ops-poc
-CONTEXT=kind-ai-ops-poc
+CLUSTER_NAME=ai-ops-poc-v2
+CONTEXT=kind-ai-ops-poc-v2
 k() { kubectl --context "$CONTEXT" "$@"; }
+install_chart() {
+  local release=$1 chart=$2 version=$3 namespace=$4
+  shift 4
+  helm upgrade --install "$release" "$chart" --version "$version" \
+    --kube-context "$CONTEXT" --namespace "$namespace" --create-namespace \
+    --wait --timeout 10m --history-max 3 "$@"
+}
 need() {
   for tool in "$@"; do
     command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool" >&2; exit 1; }
