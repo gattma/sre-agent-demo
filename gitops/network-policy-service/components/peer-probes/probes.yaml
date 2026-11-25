@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-policy-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: service
+          env:
+            - name: CHECK_PEER
+              value: "true"
+          startupProbe:
+            httpGet: {path: /startup, port: http}
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 24

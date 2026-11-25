@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: network-demo-b
+resources:
+- ../../base
+- namespace.yaml
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: network-policy-service
+    spec:
+      template:
+        spec:
+          containers:
+            - name: service
+              env:
+                - name: PEER_URL
+                  value: http://network-policy-service.network-demo-a.svc.cluster.local:8080
+  target:
+    kind: Deployment
+    name: network-policy-service
+images:
+- name: network-policy-service
+  newName: network-policy-service
+  newTag: 0.1.0
